@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         いえらぶ｜入力用文言コピー
 // @namespace    https://ielove.jp/
-// @version      4.3.0
+// @version      4.3.1
 // @description  いえらぶ用 定型文コピー・編集・デフォルト管理
 // @match        *://*.ielove.jp/*
 // @grant        none
@@ -998,3 +998,782 @@ function bindFastTooltip(element, textOrGetter) {
 
     element.addEventListener(
         'mousedown',
+        hideFastTooltip
+    );
+}
+
+    // =========================================================
+    // メインパネル
+    // =========================================================
+
+    const panel = document.createElement('div');
+
+    panel.id = 'ielovePhrasePanel';
+
+    panel.innerHTML = `
+
+        <div class="ielovePhraseHeader">
+
+            <div class="ielovePhraseTitle">
+                入力用文言
+            </div>
+
+            <button
+                type="button"
+                class="ielovePhraseClose"
+                id="ielovePhraseClose"
+                title="閉じる"
+            >
+                ${ICONS.close}
+            </button>
+
+        </div>
+
+        <div
+            class="ielovePhraseTabs"
+            id="ielovePhraseTabs"
+        ></div>
+
+        <div
+            class="ielovePhraseBody"
+            id="ielovePhraseBody"
+        ></div>
+
+    `;
+
+    document.body.appendChild(panel);
+
+    const tabs =
+        panel.querySelector('#ielovePhraseTabs');
+
+    const body =
+        panel.querySelector('#ielovePhraseBody');
+
+    // =========================================================
+    // モーダル
+    // =========================================================
+
+    const modalOverlay =
+        document.createElement('div');
+
+    modalOverlay.id =
+        'ielovePhraseModalOverlay';
+
+    modalOverlay.innerHTML = `
+
+        <div id="ielovePhraseModal">
+
+            <div class="ielovePhraseModalHeader">
+
+                <div
+                    class="ielovePhraseModalTitle"
+                    id="ielovePhraseModalTitle"
+                ></div>
+
+                <button
+                    type="button"
+                    class="ielovePhraseModalClose"
+                    id="ielovePhraseModalClose"
+                >
+                    ${ICONS.close}
+                </button>
+
+            </div>
+
+            <div class="ielovePhraseModalBody">
+
+                <div
+                    class="ielovePhraseModalLabel"
+                >
+                    文言
+                </div>
+
+                <textarea
+                    id="ielovePhraseModalTextarea"
+                ></textarea>
+
+                <div
+                    class="ielovePhraseModalInfo"
+                    id="ielovePhraseModalInfo"
+                ></div>
+
+            </div>
+
+            <div class="ielovePhraseModalFooter">
+
+                <button
+                    type="button"
+                    class="
+                        ielovePhraseModalButton
+                        ielovePhraseModalCancel
+                    "
+                    id="ielovePhraseModalCancel"
+                >
+                    キャンセル
+                </button>
+
+                <button
+                    type="button"
+                    class="
+                        ielovePhraseModalButton
+                        ielovePhraseModalSave
+                    "
+                    id="ielovePhraseModalSave"
+                >
+                    保存
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+    document.body.appendChild(modalOverlay);
+
+    const modalTitle =
+        document.getElementById('ielovePhraseModalTitle');
+
+    const modalTextarea =
+        document.getElementById('ielovePhraseModalTextarea');
+
+    const modalInfo =
+        document.getElementById('ielovePhraseModalInfo');
+
+    const modalSave =
+        document.getElementById('ielovePhraseModalSave');
+
+    // =========================================================
+    // モーダル制御
+    // =========================================================
+
+    let modalMode = null;
+    let modalGroupIndex = null;
+    let modalItemIndex = null;
+
+    function openDefaultModal(groupIndex, itemIndex) {
+
+        modalMode = 'default';
+        modalGroupIndex = groupIndex;
+        modalItemIndex = itemIndex;
+
+        const item =
+            data[groupIndex].items[itemIndex];
+
+        modalTitle.textContent =
+            'デフォルト文言を変更';
+
+        modalTextarea.value =
+            item.defaultText;
+
+        modalInfo.textContent =
+            '現在入力欄に別の文言を入力している場合、デフォルトを変更しても現在の入力内容は変更されません。';
+
+        modalOverlay.classList.add('open');
+
+        setTimeout(() => {
+            modalTextarea.focus();
+            modalTextarea.select();
+        }, 30);
+    }
+
+    function openAddModal(groupIndex) {
+
+        modalMode = 'add';
+        modalGroupIndex = groupIndex;
+        modalItemIndex = null;
+
+        modalTitle.textContent =
+            `「${data[groupIndex].title}」に文言追加`;
+
+        modalTextarea.value = '';
+
+        modalInfo.textContent =
+            'ここで入力した文章が、新しい行の最初のデフォルト文言になります。';
+
+        modalOverlay.classList.add('open');
+
+        setTimeout(() => {
+            modalTextarea.focus();
+        }, 30);
+    }
+
+    function closeModal() {
+
+        modalOverlay.classList.remove('open');
+
+        modalMode = null;
+        modalGroupIndex = null;
+        modalItemIndex = null;
+    }
+
+    // =========================================================
+    // モーダル保存
+    // =========================================================
+
+    modalSave.addEventListener(
+        'click',
+        () => {
+
+            const newText =
+                modalTextarea.value.trim();
+
+            if (!newText) {
+                alert('文言を入力してください。');
+                return;
+            }
+
+            if (modalMode === 'default') {
+
+                const item =
+                    data[modalGroupIndex]
+                        .items[modalItemIndex];
+
+                const oldDefault =
+                    item.defaultText;
+
+                const currentlyDefault =
+                    item.text === oldDefault;
+
+                item.defaultText =
+                    newText;
+
+                if (currentlyDefault) {
+                    item.text =
+                        newText;
+                }
+
+                saveData();
+                render();
+                closeModal();
+
+                return;
+            }
+
+            if (modalMode === 'add') {
+
+                data[modalGroupIndex]
+                    .items
+                    .push({
+                        id: createId(),
+                        text: newText,
+                        defaultText: newText,
+                        builtIn: false
+                    });
+
+                saveData();
+                render();
+                closeModal();
+            }
+        }
+    );
+
+    document
+        .getElementById('ielovePhraseModalClose')
+        .addEventListener(
+            'click',
+            closeModal
+        );
+
+    document
+        .getElementById('ielovePhraseModalCancel')
+        .addEventListener(
+            'click',
+            closeModal
+        );
+
+    modalOverlay.addEventListener(
+        'click',
+        event => {
+
+            if (event.target === modalOverlay) {
+                closeModal();
+            }
+        }
+    );
+
+    // =========================================================
+    // タブ描画
+    // =========================================================
+
+    function renderTabs() {
+
+        tabs.innerHTML = '';
+
+        TAB_ITEMS.forEach(
+            tab => {
+
+                const button =
+                    document.createElement('button');
+
+                button.type =
+                    'button';
+
+                button.className =
+                    'ielovePhraseTab' +
+                    (
+                        tab.id === activeGroupId
+                            ? ' active'
+                            : ''
+                    );
+
+                button.dataset.group =
+                    tab.id;
+
+                button.textContent =
+                    tab.label;
+
+                button.addEventListener(
+                    'click',
+                    () => {
+
+                        if (
+                            activeGroupId ===
+                            tab.id
+                        ) {
+                            return;
+                        }
+
+                        activeGroupId =
+                            tab.id;
+
+                        renderTabs();
+                        render();
+                    }
+                );
+
+                tabs.appendChild(
+                    button
+                );
+            }
+        );
+    }
+
+    // =========================================================
+    // 描画
+    // =========================================================
+
+    function render() {
+
+        body.innerHTML = '';
+
+        data.forEach(
+            (group, groupIndex) => {
+
+                if (
+                    group.id !==
+                    activeGroupId
+                ) {
+                    return;
+                }
+
+                const groupElement =
+                    document.createElement('div');
+
+                groupElement.className =
+                    'ielovePhraseGroup';
+
+                const groupHeader =
+                    document.createElement('div');
+
+                groupHeader.className =
+                    'ielovePhraseGroupHeader';
+
+                const groupTitle =
+                    document.createElement('div');
+
+                groupTitle.className =
+                    'ielovePhraseGroupTitle';
+
+                groupTitle.textContent =
+                    group.title;
+
+                const addButton =
+                    document.createElement('button');
+
+                addButton.type =
+                    'button';
+
+                addButton.className =
+                    'ielovePhraseAdd';
+
+                addButton.innerHTML =
+                    ICONS.add;
+
+                addButton.title =
+                    '文言を追加';
+
+                addButton.addEventListener(
+                    'click',
+                    () => {
+                        openAddModal(
+                            groupIndex
+                        );
+                    }
+                );
+
+                groupHeader.appendChild(
+                    groupTitle
+                );
+
+                groupHeader.appendChild(
+                    addButton
+                );
+
+                groupElement.appendChild(
+                    groupHeader
+                );
+
+                group.items.forEach(
+                    (item, itemIndex) => {
+
+                        const row =
+                            document.createElement('div');
+
+                        row.className =
+                            'ielovePhraseRow';
+
+                        // =================
+                        // ★ デフォルト変更
+                        // =================
+
+                        const defaultButton =
+                            document.createElement('button');
+
+                        defaultButton.type =
+                            'button';
+
+                        defaultButton.className =
+                            `
+                            ielovePhraseIconButton
+                            ielovePhraseDefault
+                            `;
+
+                        defaultButton.innerHTML =
+                            ICONS.default;
+
+                        bindFastTooltip(
+                            defaultButton,
+                            'デフォルト文言を変更'
+                        );
+
+                        defaultButton.addEventListener(
+                            'click',
+                            () => {
+
+                                openDefaultModal(
+                                    groupIndex,
+                                    itemIndex
+                                );
+                            }
+                        );
+
+                        // =================
+                        // 入力欄
+                        // =================
+
+                        const textarea =
+                            document.createElement('textarea');
+
+                        textarea.className =
+                            'ielovePhraseInput';
+
+                        textarea.rows = 2;
+
+                        textarea.value =
+                            item.text;
+
+                        textarea.addEventListener(
+                            'input',
+                            () => {
+
+                                item.text =
+                                    textarea.value;
+
+                                saveData();
+                            }
+                        );
+
+                        textarea.addEventListener(
+                            'blur',
+                            () => {
+
+                                if (
+                                    textarea.value.trim() !== ''
+                                ) {
+                                    return;
+                                }
+
+                                item.text =
+                                    item.defaultText;
+
+                                textarea.value =
+                                    item.defaultText;
+
+                                saveData();
+                            }
+                        );
+
+                        // =================
+                        // コピー
+                        // =================
+
+                        const copyButton =
+                            document.createElement('button');
+
+                        copyButton.type =
+                            'button';
+
+                        copyButton.className =
+                            `
+                            ielovePhraseIconButton
+                            ielovePhraseCopy
+                            `;
+
+                        copyButton.innerHTML =
+                            ICONS.copy;
+
+                        // コピー注釈（カーソルを合わせた瞬間に表示）
+                        bindFastTooltip(
+                            copyButton,
+                            (
+                                group.id === 'notice' &&
+                                itemIndex === 1
+                            )
+                                ? '※人が死んだ場合の「HOME\'Sのみ」'
+                                : 'コピー'
+                        );
+
+                        copyButton.addEventListener(
+                            'click',
+                            async () => {
+
+                                let text =
+                                    textarea.value.trim();
+
+                                if (!text) {
+
+                                    text =
+                                        item.defaultText;
+
+                                    item.text =
+                                        text;
+
+                                    textarea.value =
+                                        text;
+
+                                    saveData();
+                                }
+
+                                const success =
+                                    await copyText(text);
+
+                                if (!success) {
+                                    return;
+                                }
+
+                                copyButton.classList.add(
+                                    'copied'
+                                );
+
+                                setTimeout(
+                                    () => {
+
+                                        copyButton
+                                            .classList
+                                            .remove('copied');
+
+                                    },
+                                    700
+                                );
+                            }
+                        );
+
+                        // =================
+                        // ↶ デフォルトへ戻す
+                        // =================
+
+                        const resetButton =
+                            document.createElement('button');
+
+                        resetButton.type =
+                            'button';
+
+                        resetButton.className =
+                            `
+                            ielovePhraseIconButton
+                            ielovePhraseReset
+                            `;
+
+                        resetButton.innerHTML =
+                            ICONS.reset;
+
+                        bindFastTooltip(
+                            resetButton,
+                            'デフォルト文言に戻す'
+                        );
+
+                        resetButton.addEventListener(
+                            'click',
+                            () => {
+
+                                item.text =
+                                    item.defaultText;
+
+                                textarea.value =
+                                    item.defaultText;
+
+                                saveData();
+                            }
+                        );
+
+                        // =================
+                        // 🗑 削除
+                        // =================
+
+                        const deleteButton =
+                            document.createElement('button');
+
+                        deleteButton.type =
+                            'button';
+
+                        deleteButton.className =
+                            `
+                            ielovePhraseIconButton
+                            ielovePhraseDelete
+                            `;
+
+                        deleteButton.innerHTML =
+                            ICONS.delete;
+
+                        bindFastTooltip(
+                            deleteButton,
+                            'この文言を削除'
+                        );
+
+                        deleteButton.addEventListener(
+                            'click',
+                            () => {
+
+                                const ok =
+                                    confirm(
+                                        'この文言を削除しますか？'
+                                    );
+
+                                if (!ok) {
+                                    return;
+                                }
+
+                                group.items.splice(
+                                    itemIndex,
+                                    1
+                                );
+
+                                saveData();
+                                render();
+                            }
+                        );
+
+                        const actions =
+                            document.createElement('div');
+
+                        actions.className =
+                            'ielovePhraseActions';
+
+                        actions.appendChild(
+                            defaultButton
+                        );
+
+                        actions.appendChild(
+                            copyButton
+                        );
+
+                        actions.appendChild(
+                            resetButton
+                        );
+
+                        actions.appendChild(
+                            deleteButton
+                        );
+
+                        row.appendChild(
+                            textarea
+                        );
+
+                        row.appendChild(
+                            actions
+                        );
+
+                        groupElement.appendChild(
+                            row
+                        );
+                    }
+                );
+
+                body.appendChild(
+                    groupElement
+                );
+            }
+        );
+    }
+
+    // =========================================================
+    // 開閉
+    // =========================================================
+
+    launcher.addEventListener(
+        'click',
+        () => {
+
+            panel.classList.toggle(
+                'open'
+            );
+        }
+    );
+
+    document
+        .getElementById('ielovePhraseClose')
+        .addEventListener(
+            'click',
+            () => {
+
+                panel.classList.remove(
+                    'open'
+                );
+            }
+        );
+
+    // =========================================================
+    // ESC
+    // =========================================================
+
+    document.addEventListener(
+        'keydown',
+        event => {
+
+            if (event.key !== 'Escape') {
+                return;
+            }
+
+            if (
+                modalOverlay
+                    .classList
+                    .contains('open')
+            ) {
+                closeModal();
+                return;
+            }
+
+            panel.classList.remove('open');
+        }
+    );
+
+    // =========================================================
+    // 初期保存・描画
+    // =========================================================
+
+    saveData();
+    renderTabs();
+    render();
+
+})();
