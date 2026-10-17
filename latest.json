@@ -1,0 +1,5 @@
+{
+  "version": "4.3.0",
+  "install_url": "https://raw.githubusercontent.com/Alpha0727/IERABU-INPUT-PHRASES/main/releases/IERABU-INPUT-PHRASES-4.3.0.user.js",
+  "notes": "入力用文言のタブ式UI。文言入力欄を横幅いっぱいにし、デフォルト変更・コピー・戻す・削除を下段4分割のアイコンボタンとして配置。高速ツールチップ対応。"
+}
