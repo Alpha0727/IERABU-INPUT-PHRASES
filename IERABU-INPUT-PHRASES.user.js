@@ -3,12 +3,17 @@
 // @namespace    https://ielove.jp/
 // @version      4.3.1
 // @description  いえらぶ用 定型文コピー・編集・デフォルト管理
-// @match        *://*.ielove.jp/*
+// @match        https://cloud.ielove.jp/rent
+// @match        https://cloud.ielove.jp/rent/*
 // @grant        none
 // ==/UserScript==
 
 (function () {
     'use strict';
+
+    // いえらぶCLOUDの賃貸管理ページ配下でのみ表示・実行する。
+    // 異なるホストや /rental などの類似パスは対象外。
+    if (location.hostname !== 'cloud.ielove.jp' || !/^\/rent(?:\/|$)/.test(location.pathname)) return;
 
     // =========================================================
     // 基本設定
