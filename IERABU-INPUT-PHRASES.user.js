@@ -3,6 +3,7 @@
 // @namespace    https://ielove.jp/
 // @version      4.3.1
 // @description  いえらぶ用 定型文コピー・編集・デフォルト管理
+// @match        https://cloud.ielove.jp/rent
 // @match        https://cloud.ielove.jp/rent/*
 // @grant        none
 // ==/UserScript==
