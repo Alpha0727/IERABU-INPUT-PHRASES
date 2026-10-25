@@ -3,12 +3,16 @@
 // @namespace    https://ielove.jp/
 // @version      4.3.1
 // @description  いえらぶ用 定型文コピー・編集・デフォルト管理
-// @match        *://*.ielove.jp/*
+// @match        https://cloud.ielove.jp/rent/*
 // @grant        none
 // ==/UserScript==
 
 (function () {
     'use strict';
+
+    // Show the launcher on /rent/ and all nested rental pages only.
+    if (location.hostname !== 'cloud.ielove.jp' ||
+        !/^\/rent(?:\/|$)/.test(location.pathname)) return;
 
     // =========================================================
     // 基本設定
