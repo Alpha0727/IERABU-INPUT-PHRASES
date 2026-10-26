@@ -1,14 +1,18 @@
 // ==UserScript==
 // @name         いえらぶ｜入力用文言コピー
 // @namespace    https://ielove.jp/
-// @version      4.3.1
+// @version      4.3.2
 // @description  いえらぶ用 定型文コピー・編集・デフォルト管理
-// @match        *://*.ielove.jp/*
+// @match        https://cloud.ielove.jp/rent/*
 // @grant        none
 // ==/UserScript==
 
 (function () {
     'use strict';
+
+    // /rent/ 以外の画面では実行しない（既存インストールからの移行時も安全）。
+    if (location.origin !== 'https://cloud.ielove.jp' ||
+        !location.pathname.startsWith('/rent/')) return;
 
     // =========================================================
     // 基本設定
