@@ -1,5 +1,5 @@
 {
-  "version": "4.3.2",
-  "install_url": "https://raw.githubusercontent.com/Alpha0727/IERABU-INPUT-PHRASES/main/releases/IERABU-INPUT-PHRASES-4.3.2.user.js",
-  "notes": "いえらぶCLOUDの https://cloud.ielove.jp/rent/ 以下だけで表示・実行するよう変更。既存機能とデータ保存先は維持。"
+  "version": "4.3.3",
+  "install_url": "https://raw.githubusercontent.com/Alpha0727/IERABU-INPUT-PHRASES/main/releases/IERABU-INPUT-PHRASES-4.3.3.user.js",
+  "notes": "スポット・指摘設定と同様の更新通知・アップデートボタンを追加。元画面の再読み込みにも対応。文言と保存先は変更なし。"
 }
