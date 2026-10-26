@@ -84,7 +84,7 @@
                 try{
                     if(r.status<200||r.status>=300)throw Error('API HTTP '+r.status);
                     const obj=JSON.parse(r.responseText||'{}');
-                    const clean=String(obj.content||'').replace(/\\s/g,'');
+                    const clean=String(obj.content||'').replace(/\s/g,'');
                     if(!clean)throw Error('latest.json missing');
                     const binary=atob(clean);
                     const bytes=Uint8Array.from(binary,ch=>ch.charCodeAt(0));
