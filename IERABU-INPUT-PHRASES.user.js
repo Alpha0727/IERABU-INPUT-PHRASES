@@ -1,10 +1,15 @@
 // ==UserScript==
 // @name         いえらぶ｜入力用文言コピー
 // @namespace    https://ielove.jp/
-// @version      4.3.2
+// @version      4.3.3
 // @description  いえらぶ用 定型文コピー・編集・デフォルト管理
 // @match        https://cloud.ielove.jp/rent/*
-// @grant        none
+// @updateURL    https://raw.githubusercontent.com/Alpha0727/IERABU-INPUT-PHRASES/main/IERABU-INPUT-PHRASES.user.js
+// @downloadURL  https://raw.githubusercontent.com/Alpha0727/IERABU-INPUT-PHRASES/main/IERABU-INPUT-PHRASES.user.js
+// @run-at       document-idle
+// @grant        GM_xmlhttpRequest
+// @connect      raw.githubusercontent.com
+// @connect      api.github.com
 // ==/UserScript==
 
 (function () {
@@ -17,6 +22,78 @@
     // =========================================================
     // 基本設定
     // =========================================================
+
+
+    const PHRASE_VERSION = '4.3.3';
+    const PHRASE_SCRIPT_URL = 'https://raw.githubusercontent.com/Alpha0727/IERABU-INPUT-PHRASES/main/IERABU-INPUT-PHRASES.user.js';
+    const PHRASE_API_URL = 'https://api.github.com/repos/Alpha0727/IERABU-INPUT-PHRASES/contents/latest.json?ref=main';
+    const PHRASE_RAW_URL = 'https://raw.githubusercontent.com/Alpha0727/IERABU-INPUT-PHRASES/main/latest.json';
+
+    function comparePhraseVersions(a, b) {
+        const x=String(a).split('.').map(Number), y=String(b).split('.').map(Number);
+        for(let i=0;i<Math.max(x.length,y.length);i++){
+            const diff=(x[i]||0)-(y[i]||0);
+            if(diff) return diff>0?1:-1;
+        }
+        return 0;
+    }
+
+    function checkPhraseUpdate() {
+        const status=document.getElementById('ielovePhraseVersion');
+        const alert=document.getElementById('ielovePhraseUpdateAlert');
+        const button=document.getElementById('ielovePhraseUpdate');
+        if(!status||!alert||!button) return;
+        status.title='更新確認中…';
+        alert.style.display='none';
+        button.style.display='none';
+
+        function apply(info) {
+            const latest=String(info.version||'').trim();
+            status.title=latest
+                ? '更新確認：成功\\n現在：Ver.'+PHRASE_VERSION+'\\n最新版：Ver.'+latest
+                : '更新確認：解析失敗';
+            if(!latest||comparePhraseVersions(latest,PHRASE_VERSION)<=0)return;
+            alert.style.display='inline-flex';
+            alert.title='現在：Ver.'+PHRASE_VERSION+'\\n最新版：Ver.'+latest+
+                (info.notes?'\\n\\n'+String(info.notes):'');
+            button.style.display='inline-block';
+            button.disabled=false;
+            button.title='Ver.'+latest+' にアップデート';
+            button.dataset.latestVersion=latest;
+            button.dataset.installUrl=String(info.install_url||PHRASE_SCRIPT_URL);
+        }
+        function fetchRaw() {
+            GM_xmlhttpRequest({
+                method:'GET',
+                url:PHRASE_RAW_URL+'?t='+Date.now(),
+                headers:{'Cache-Control':'no-cache'},
+                onload:r=>{
+                    try{
+                        if(r.status<200||r.status>=300)throw Error('raw HTTP '+r.status);
+                        apply(JSON.parse(r.responseText||'{}'));
+                    }catch(e){status.title='更新確認：失敗';console.warn('[入力用文言] 更新確認失敗',e);}
+                },
+                onerror:()=>{status.title='更新確認：通信失敗';}
+            });
+        }
+        GM_xmlhttpRequest({
+            method:'GET',
+            url:PHRASE_API_URL+'&t='+Date.now(),
+            headers:{'Cache-Control':'no-cache'},
+            onload:r=>{
+                try{
+                    if(r.status<200||r.status>=300)throw Error('API HTTP '+r.status);
+                    const obj=JSON.parse(r.responseText||'{}');
+                    const clean=String(obj.content||'').replace(/\\s/g,'');
+                    if(!clean)throw Error('latest.json missing');
+                    const binary=atob(clean);
+                    const bytes=Uint8Array.from(binary,ch=>ch.charCodeAt(0));
+                    apply(JSON.parse(new TextDecoder('utf-8').decode(bytes)));
+                }catch(e){console.warn('[入力用文言] GitHub API失敗、rawで再確認',e);fetchRaw();}
+            },
+            onerror:fetchRaw
+        });
+    }
 
     const STORAGE_KEY = 'ielove_input_phrases_v4_1';
 
@@ -1018,8 +1095,13 @@ function bindFastTooltip(element, textOrGetter) {
 
         <div class="ielovePhraseHeader">
 
-            <div class="ielovePhraseTitle">
-                入力用文言
+            <div class="ielovePhraseTitle" style="display:flex;align-items:center;gap:6px;min-width:0;">
+                <span>入力用文言</span>
+                <span id="ielovePhraseVersion" style="font-size:10px;color:#617180;white-space:nowrap;">Ver.4.3.3</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;margin-left:auto;">
+                <span id="ielovePhraseUpdateAlert" style="display:none;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:#f0a000;color:white;font-weight:bold;font-size:12px;" title="更新あり">!</span>
+                <button id="ielovePhraseUpdate" type="button" disabled style="display:none;border:0;border-radius:5px;padding:5px 7px;background:#205375;color:white;font-size:10px;font-weight:bold;cursor:pointer;">アップデート</button>
             </div>
 
             <button
@@ -1772,6 +1854,21 @@ function bindFastTooltip(element, textOrGetter) {
         }
     );
 
+    document.getElementById('ielovePhraseUpdate').addEventListener('click', event => {
+        const btn=event.currentTarget;
+        const url=btn.dataset.installUrl||PHRASE_SCRIPT_URL;
+        const sep=url.includes('?')?'&':'?';
+        const latest=btn.dataset.latestVersion||PHRASE_VERSION;
+        const tab=window.open(url+sep+'install='+encodeURIComponent(latest)+'&t='+Date.now(),'_blank');
+        if(tab){
+            const watcher=setInterval(()=>{
+                if(!tab.closed)return;
+                clearInterval(watcher);
+                location.reload();
+            },500);
+        }
+    });
+
     // =========================================================
     // 初期保存・描画
     // =========================================================
@@ -1779,5 +1876,6 @@ function bindFastTooltip(element, textOrGetter) {
     saveData();
     renderTabs();
     render();
+    checkPhraseUpdate();
 
 })();
