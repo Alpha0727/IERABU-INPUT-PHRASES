@@ -1,5 +1,5 @@
 {
-  "version": "4.3.1",
-  "install_url": "https://raw.githubusercontent.com/Alpha0727/IERABU-INPUT-PHRASES/main/releases/IERABU-INPUT-PHRASES-4.3.1.user.js",
-  "notes": "Ver4.3.0でアップロード内容が途中で途切れて表示されなかった不具合を修正。全コードを復元し、既存UI・保存キーを維持。"
+  "version": "4.3.2",
+  "install_url": "https://raw.githubusercontent.com/Alpha0727/IERABU-INPUT-PHRASES/main/releases/IERABU-INPUT-PHRASES-4.3.2.user.js",
+  "notes": "いえらぶCLOUDの https://cloud.ielove.jp/rent/ 以下だけで表示・実行するよう変更。既存機能とデータ保存先は維持。"
 }
